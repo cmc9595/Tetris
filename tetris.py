@@ -6,9 +6,12 @@ from block import Pixel, Board, Block, block_shape, block_size, blockColor
 from random import randrange
 from copy import deepcopy
 
+pygame.init()
+
 screen, clock = None, None
 start_ticks = None
-music = False # 시작과 틀려면 True
+music = False
+volume = 0.5
 done, finish = False, False
 key = None
 gridSize = 20
@@ -16,10 +19,14 @@ board_x, board_y = 0, 0
 board = None
 curBlock = None
 level, score = 1, 0
-    
+
+
+pygame.mixer.music.load('전투3.mp3')
+pygame.mixer.music.play()
+
 def createBlock():
     shapeNum = randrange(7)
-    color = randrange(5)
+    color = randrange(len(blockColor))
     pos = [board.width//2 - block_size//2, 0]
     newBlock = Block(shapeNum, color, x=pos[0], y=pos[1])
     while not checkDown(newBlock):
@@ -48,13 +55,25 @@ def drawBlock(cur):
             if cur.shape[i][j]==1: # 블럭색
                 pygame.draw.rect(screen, blockColor[cur.color], 
                                  [board_x+(cur.x+j)*gridSize, board_y+(cur.y+i)*gridSize, gridSize, gridSize])
-def drawText():
-    game_font = pygame.font.Font(None, 30)
-    elapsed_time = round((pygame.time.get_ticks() - start_ticks) / 1000, 1)
-    timer = game_font.render("Time: " + str(elapsed_time), True, block.BLACK) # text, True, color
-    screen.blit(timer, (10,10)) # 위치
+def drawText(stop_time):
+    if stop_time:
+        elapsed_time = round((stop_time - start_ticks) / 1000, 1)
+    else:
+        elapsed_time = round((pygame.time.get_ticks() - start_ticks) / 1000, 1)
+    screen.blit(pygame.font.Font(None, 30).render("Time: " + str(elapsed_time), True, block.BLACK), (10,10))
     screen.blit(pygame.font.Font(None, 30).render("Level: " + str(level), True, block.RED), (10, 30))
     screen.blit(pygame.font.Font(None, 30).render("Score: " + str(score), True, block.BLUE), (10, 50))
+    
+    screen.blit(pygame.font.Font(None, 30).render("volume  +      -", True, block.BLUE), (420, screen.get_height()//2))
+    screen.blit(pygame.font.Font(None, 30).render("EXIT", True, block.BLUE), (500, screen.get_height()//2 + 50))
+
+def drawButton():
+    # volume button
+    pygame.draw.rect(screen, block.WHITE, [500, screen.get_height()//2, 20, 20])
+    pygame.draw.rect(screen, block.WHITE, [540, screen.get_height()//2, 20, 20])
+    #quit button
+    pygame.draw.rect(screen, block.WHITE, [500, screen.get_height()//2 + 40, 50, 40])
+    
 def curPos(cur):
     pos = []
     for i in range(block_size):
@@ -110,59 +129,78 @@ def updateBoard():
     board.board = tmpBoard[::-1]
     # update score
     if 0 < cnt <= 4:
+        soundObj = pygame.mixer.Sound('( 효과음 )앙 기모띠.mp3')
+        soundObj.play()
         score += Score(level, cnt)
-    print(cnt)
-    
+        
+def musicVolume(string):
+    global volume
+    if string=="up":
+        volume = min(volume+0.2, 1)
+    else:
+        volume = max(volume-0.2, 0)
+    print(volume)
+    pygame.mixer.music.set_volume(volume)
+        
 def main():
     global screen, clock, start_ticks, board, level, done, score, music, finish, curBlock
     global board_x, board_y
-    pygame.init()
+    
     screen = pygame.display.set_mode((600, 600))
     clock = pygame.time.Clock()
     start_ticks = pygame.time.get_ticks()
+    
     pygame.time.set_timer(pygame.USEREVENT, 1000) # 초당 event occur
-    board_x, board_y = screen.get_width()//3, 0
+    
     board = Board(width=10, height=20)
+    board_x, board_y = screen.get_width()//3, 0
+    curBlock = createBlock()
+    
     level = 1
     score = 0
     done = False
     finish = False
+    finish_time = None
     music = True
-    pygame.mixer.music.load('POTC.mp3')
-    pygame.mixer.music.play()
     
     while not done:
+        mouse = pygame.mouse.get_pos()
         clock.tick(12)
         screen.fill(block.WHITE)
         drawBackground()
         drawBoard()
-        if not curBlock:
-            curBlock = createBlock()
         drawBlock(curBlock)
-        drawText()
+        drawButton()
+        drawText(finish_time)
         
         if finish:
-            gameover = pygame.font.Font(None, 30).render("Press R to Respawn", False, (255, 255, 255))
+            gameover = pygame.font.Font(None, 70).render("Press R to Respawn", False, (255, 255, 255), 1)
             rect = gameover.get_rect()
             rect.center = screen.get_rect().center
             screen.blit(gameover, rect)
-            
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
-            elif event.type == pygame.USEREVENT: # every 1sec
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if 500 <= mouse[0] <= 520 and screen.get_height()//2 <= mouse[1] <= screen.get_height()//2 + 20:
+                    musicVolume("up")
+                if 540 <= mouse[0] <= 560 and screen.get_height()//2 <= mouse[1] <= screen.get_height()//2 + 20:
+                    musicVolume("down")
+                if 500 <= mouse[0] <= 540 and screen.get_height()//2 + 40 <= mouse[1] <= screen.get_height()//2 + 80:
+                    done = True
                 
-                if checkDown(curBlock):
-                    curBlock.y += 1
-                else: # 바닥 닿으면
-                    if not finish:
-                        blockToBoard(curBlock)
-                        updateBoard()
-                        curBlock = createBlock()
-                        
+            elif event.type == pygame.USEREVENT and not finish: # every 1sec
                 if 1 in [pixel.val for pixel in board.board[0]]: # 천장닿으면 finish
                     finish = True
+                    finish_time = pygame.time.get_ticks()
                     break
+                if checkDown(curBlock):
+                    curBlock.y += 1
+                else: 
+                    blockToBoard(curBlock)
+                    updateBoard()
+                    curBlock = createBlock()
                 
         keys = pygame.key.get_pressed() 
         if keys[pygame.K_LEFT]:
