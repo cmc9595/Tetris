@@ -61,7 +61,7 @@ def drawText(board):
     screen.blit(pygame.font.Font(None, 30).render("Time: " + str(elapsed_time), True, block.BLACK), (10,10))
     screen.blit(pygame.font.Font(None, 30).render("Level: " + str(board.level), True, block.RED), (10, 30))
     screen.blit(pygame.font.Font(None, 30).render("Score: " + str(board.score), True, block.BLUE), (10, 50))
-    screen.blit(pygame.font.Font(None, 30).render("Speed: " + str(board.speed), True, block.WHITE, 1), (10, 70))
+    screen.blit(pygame.font.Font(None, 30).render("Speed: " + str(board.speed), True, (0, 102, 0)), (10, 70))
     
     screen.blit(pygame.font.Font(None, 30).render("volume  +      -", True, block.BLUE), (420, screen.get_height()//2))
     screen.blit(pygame.font.Font(None, 30).render("EXIT", True, block.BLUE), (500, screen.get_height()//2 + 50))
@@ -72,7 +72,7 @@ def drawButton(rect, color):
     
 def musicVolume(string):
     global volume
-    if string=="up":
+    if string=="+":
         volume = min(volume+0.2, 1)
     else:
         volume = max(volume-0.2, 0)
@@ -87,6 +87,11 @@ def server(id, score):
         'time': current_time
     }
     response = requests.post('http://54.180.131.80:5000/post', data=datas)
+
+def drawScoreBoard():
+    #inputbox = pygame.Rect(screen.get_width()//2 - 150, screen.get_height()//2 - 200, 300, 400)
+    #pygame.draw.rect(screen, block.WHITE, inputbox)
+    pass
     
 def main():
     global screen
@@ -129,18 +134,27 @@ def main():
         drawText(board)
         
         if finish:
+            screen.blit(pygame.font.Font(None, 50).render("Name : " + text + " < type", True, block.WHITE, 1), (150,100))
+            screen.blit(pygame.font.Font(None, 50).render("Level : " + str(board.level), True, block.WHITE, 1), (150,150))
+            screen.blit(pygame.font.Font(None, 50).render("Score : " + str(board.score), True, block.WHITE, 1), (150,200))
+            #text_surf = pygame.font.SysFont('malgungothic', 50).render(text, True, block.WHITE, 0)
+            #text_surf.get_rect().center = (150, 150)
+            #screen.blit(text_surf, text_surf.get_rect())
             
-            # 이름 다 넣고 엔터 치면 input_active=False, send_server=True하도록
-            if send_server:
-                server("temp", 100)
-                send_server = False
-            gameover = pygame.font.Font(None, 70).render("Press R to Respawn", False, (255, 255, 255), 1)
-            rect = gameover.get_rect()
-            rect.center = screen.get_rect().center
-            screen.blit(gameover, rect)
             
-            text_surf = pygame.font.SysFont('malgungothic', 50).render(text, True, block.RED, 5)
-            screen.blit(text_surf, text_surf.get_rect(center = screen.get_rect().center))
+            # 엔터 -> input_active = False
+            if not input_active:
+                if send_server:
+                    server("temp", 100)
+                    send_server = False
+                    
+                drawScoreBoard()
+                
+                gameover = pygame.font.Font(None, 70).render("Press R to Respawn", True, (255, 255, 255), 1)
+                rect = gameover.get_rect()
+                rect.center = screen.get_rect().center
+                screen.blit(gameover, rect)
+            
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -148,9 +162,9 @@ def main():
                 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if vol_rect_1.collidepoint(event.pos):
-                    musicVolume("up")
+                    musicVolume("+")
                 if vol_rect_2.collidepoint(event.pos):
-                    musicVolume("down")
+                    musicVolume("-")
                 if quit_rect.collidepoint(event.pos):
                     done = True
                 
@@ -178,31 +192,33 @@ def main():
                     
             
                 
-        keys = pygame.key.get_pressed() 
-        if keys[pygame.K_LEFT]:
-            if curBlock.checkLeft(board):
-                curBlock.x -= 1
-        #test용
-        elif keys[pygame.K_ESCAPE]:
-            finish = True
-            input_active = True
-            board.finish_time = pygame.time.get_ticks()
-            
-        elif keys[pygame.K_RIGHT]:
-            if curBlock.checkRight(board):
-                curBlock.x += 1
-        elif keys[pygame.K_UP] or keys[pygame.K_SPACE]: # rotate
-            if curBlock.checkRotate(board):
-                curBlock.rotate()
-            else:
-                print("can't rotate")
-        elif keys[pygame.K_DOWN]:
-            if curBlock.checkDown(board):
-                curBlock.y += 1
+        keys = pygame.key.get_pressed()
+        if finish:
+            if not input_active and keys[pygame.K_r]: # respawn
+                done = True
+                main()
         
-        elif finish and not input_active and keys[pygame.K_r]: # respawn
-            done = True
-            main()
+        else:
+            if keys[pygame.K_LEFT]:
+                if curBlock.checkLeft(board):
+                    curBlock.x -= 1
+            #test용
+            elif keys[pygame.K_ESCAPE]:
+                finish = True
+                input_active = True
+                board.finish_time = pygame.time.get_ticks()
+                
+            elif keys[pygame.K_RIGHT]:
+                if curBlock.checkRight(board):
+                    curBlock.x += 1
+            elif keys[pygame.K_UP] or keys[pygame.K_SPACE]: # rotate
+                if curBlock.checkRotate(board):
+                    curBlock.rotate()
+                else:
+                    print("can't rotate")
+            elif keys[pygame.K_DOWN]:
+                if curBlock.checkDown(board):
+                    curBlock.y += 1
             
         pygame.display.update()  
         
