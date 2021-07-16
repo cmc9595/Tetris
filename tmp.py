@@ -1,14 +1,10 @@
-scoreList = ['cmc/0/123']
+from datetime import datetime
+scoreList = [['cmc', '900', '2019-03-05 05:13:12'], ['cmc', '980', '2019-03-05 05:13:15'], ['cmc', '900', '2019-03-05 05:12:15']]
 
-for line in scoreList:
-    print(type(line))
-    print(type(line.split('/')))
-    line = line.split('/')
-    line = ""
 
-print(scoreList)
 
-s = "asd"
+scoreList = sorted(scoreList, key=lambda x:
+    (-int(x[1]), x[2][::-1]))
 
-s = [123]
-print(s)
+for i in scoreList:
+    print(i)

@@ -222,8 +222,8 @@ class Block():
 
 class SoundEffect():
     def __init__(self):
-        self.sound = random.choice(os.listdir(os.getcwd()+'/soundeffect'))
-        self.soundObj = pygame.mixer.Sound('soundeffect/' + self.sound)
+        self.sound = random.choice(os.listdir(os.getcwd()+'/resource/soundeffect'))
+        self.soundObj = pygame.mixer.Sound('resource/soundeffect/' + self.sound)
         
     def play(self):
         self.soundObj.play()

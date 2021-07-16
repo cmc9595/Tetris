@@ -4,16 +4,303 @@ import block
 from block import Board, Block, block_size, blockColor
 import random
 import requests
+from collections import namedtuple
+import pygame
+import os
+import random
+from copy import deepcopy
 
+block_shape = [
+    [
+        [
+            [0, 0, 0, 0],
+            [0, 0, 1, 0],
+            [0, 1, 1, 1],
+            [0, 0, 0, 0]],
+        [
+            [0, 0, 0, 0],
+            [0, 0, 1, 0],
+            [0, 1, 1, 0],
+            [0, 0, 1, 0]],
+        [
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 1, 1, 1],
+            [0, 0, 1, 0]],
+        [
+            [0, 0, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 1, 1],
+            [0, 0, 1, 0]]
+    ],
+
+    [
+        [
+            [0, 0, 0, 0],
+            [0, 0, 1, 1],
+            [0, 1, 1, 0],
+            [0, 0, 0, 0]],
+        [
+            [0, 1, 0, 0],
+            [0, 1, 1, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 0]]
+    ],
+
+    [
+        [
+            [0, 0, 0, 0],
+            [0, 1, 1, 0],
+            [0, 0, 1, 1],
+            [0, 0, 0, 0]],
+        [
+            [0, 0, 1, 0],
+            [0, 1, 1, 0],
+            [0, 1, 0, 0],
+            [0, 0, 0, 0]]
+    ],
+    
+    [      
+        [
+            [0, 0, 1, 0],
+            [0, 0, 1, 0],
+            [0, 1, 1, 0],
+            [0, 0, 0, 0]],
+        [
+            [0, 0, 0, 0],
+            [0, 1, 1, 1],
+            [0, 0, 0, 1],
+            [0, 0, 0, 0]],
+        [
+            [0, 1, 1, 0],
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 0, 0]],
+        [
+            [0, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 1, 1],
+            [0, 0, 0, 0]]
+    ],
+    [      
+        [
+            [0, 1, 0, 0],
+            [0, 1, 0, 0],
+            [0, 1, 1, 0],
+            [0, 0, 0, 0]],
+        [
+            [0, 0, 0, 0],
+            [0, 0, 0, 1],
+            [0, 1, 1, 1],
+            [0, 0, 0, 0]],
+        [
+            [0, 1, 1, 0],
+            [0, 0, 1, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 0]],
+        [
+            [0, 0, 0, 0],
+            [0, 1, 1, 1],
+            [0, 1, 0, 0],
+            [0, 0, 0, 0]]
+    ],
+    
+    [      
+        [
+            [0, 0, 1, 0],
+            [0, 0, 1, 0],
+            [0, 0, 1, 0],
+            [0, 0, 1, 0]],
+        [
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [1, 1, 1, 1],
+            [0, 0, 0, 0]]
+    ],
+    
+    [      
+        [
+            [0, 0, 0, 0],
+            [0, 1, 1, 0],
+            [0, 1, 1, 0],
+            [0, 0, 0, 0]]
+    ]
+]
+block_size = 4
+
+BLACK= ( 0,  0,  0)
+WHITE= (255,255,255)
+BLUE = ( 0,  0,255)
+CYAN = (0, 255, 255)
+GREEN= ( 0,255,  0)
+RED  = (255,  0,  0)
+YELLOW = (255, 255, 0)
+ORANGE = (255, 128, 0)
+blockColor = [(255, 51, 51)	,
+(255, 102, 51)	,(255, 153, 51)	,
+(255, 204, 51)	,
+(255, 255, 51)	,
+(204, 255, 51)	,
+(153, 255, 51)	,
+(102, 255, 51)	,
+(51, 255, 51)	,
+(51, 255, 102)	,
+(51, 255, 153)	,
+(51, 255, 204)	,
+(51, 255, 255)	,
+(51, 204, 255)	,
+(51, 153, 255)	,
+(51, 102, 255)	,
+(51, 51, 255)	,
+(102, 51, 255)	,
+(153, 51, 255)	,
+(204, 51, 255)	,
+(255, 51, 255)	,
+(255, 51, 204)	,
+(255, 51, 153)	,
+(255, 51, 102)	,
+(255, 51, 51)]
+
+class Block():
+    def __init__(self, n, color, x, y, rot=0):
+        self.n = n
+        self.color = color
+        self.shape = block_shape[n][rot]
+        self.x = x
+        self.y = y
+        self.rot = rot
+        
+    def rotate(self): # left 90 angle
+        if self.n in [0, 3, 4]:
+            self.rot = (self.rot + 1) % 4
+        elif self.n in [1, 2, 5]:
+            self.rot = (self.rot + 1) % 2
+        else:
+            pass
+        self.shape = block_shape[self.n][self.rot]
+     
+    def curPos(self): # current position on board
+        pos = []
+        for i in range(block_size):
+            for j in range(block_size):
+                if self.shape[i][j]==1:
+                    pos.append([self.y+i, self.x+j])
+        return pos
+    
+    def checkLeft(self, board):
+        for [y, x] in self.curPos(): # coordinate list
+            if x == 0 or board.board[y][x-1].val == 1:
+                return False
+        return True
+    
+    def checkRight(self, board):
+        for [y, x] in self.curPos(): # coordinate list
+            if x == board.width-1 or board.board[y][x+1].val == 1:
+                return False
+        return True
+    
+    def checkDown(self, board):
+        for [y, x] in self.curPos(): # coordinate list
+            if y < -1:
+                continue
+            if y == board.height-1 or board.board[y+1][x].val == 1:
+                return False
+        return True
+    
+    def checkRotate(self, board):
+        nextBlock = deepcopy(self)
+        nextBlock.rotate()
+        nextShape = nextBlock.shape
+        for i in range(block_size):
+            for j in range(block_size):
+                if nextShape[i][j]==1 and not (0<=self.x+j<=board.width-1 and 0<=self.y+i<=board.height-1):
+                    return False
+                if nextShape[i][j]==1 and board.board[self.y+i][self.x+j].val==1:
+                    return False
+        return True
+    
+    def blockToBoard(self, board):
+        for i in range(block_size):
+            for j in range(block_size):
+                if self.shape[i][j]==1:
+                    board.board[self.y+i][self.x+j] = Pixel(1, self.color)
+
+
+class SoundEffect():
+    def __init__(self):
+        self.sound = random.choice(os.listdir(os.getcwd()+'/resource/soundeffect'))
+        self.soundObj = pygame.mixer.Sound('resource/soundeffect/' + self.sound)
+        
+    def play(self):
+        self.soundObj.play()
+        
+Pixel = namedtuple('Pixel', 'val color')
+class Board():
+    def __init__(self, x, y, width, height, start_time):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.board = [[Pixel(0, WHITE) for _ in range(width)] for _ in range(height)]
+        # pixel = (val, color)
+        
+        self.score = 0
+        self.level = 1
+        self.speed = 1000
+        
+        self.alive = True
+        self.start_time = start_time
+        self.finish_time = None
+    
+    def updateBoard(self):
+        tmp = []
+        for i in reversed(range(self.height)):
+            if any(j.val==0 for j in self.board[i]):
+                tmp.append(self.board[i])
+        cnt = self.height-len(tmp)
+        for i in range(cnt):
+            tmp.append([Pixel(0, WHITE) for _ in range(self.width)])
+        self.board = tmp[::-1]
+        # update score
+        if 0 < cnt <= 4: # line pop!
+            soundEffect = SoundEffect()
+            soundEffect.play()
+            
+            self.score += self.getScore(self.level, cnt)
+            self.level += 1
+            if 0 <= self.level <= 3:
+                self.speed = int(self.speed*0.5)
+            elif 4 <= self.level <= 7:
+                self.speed = int(self.speed*0.9)
+            elif 8<= self.level <= 10:
+                self.speed = int(self.speed*0.95)
+            else:
+                self.speed = int(self.speed*0.99)
+            pygame.time.set_timer(pygame.USEREVENT, self.speed)
+    
+    def getScore(self, level, cnt):
+        weight = [1, 2.5, 7.5, 30]
+        return int(40*level*weight[cnt-1])
+    
+    def updateLevel(self):
+        pass
+    
+    def updateSpeed(self):
+        pass
+        
 pygame.init()
+pygame.font.init()
 pygame.key.set_repeat(400, 75)
+
+myfont = 'Sans'
+fontsize = 20
 
 screen = None
 volume = 0.5
 key = None
 gridSize = 20
-pygame.mixer.music.load('전투3.mp3')
-#pygame.mixer.music.play()
+pygame.mixer.music.load('resource/전투3.mp3')
+pygame.mixer.music.play()
 
 def createBlock(board):
     shapeNum = random.randrange(7)
@@ -58,14 +345,14 @@ def drawText(board):
         elapsed_time = round((board.finish_time - board.start_time) / 1000, 1)
     else:
         elapsed_time = round((pygame.time.get_ticks() - board.start_time) / 1000, 1)
-    screen.blit(pygame.font.Font(None, 30).render("Time: " + str(elapsed_time), True, block.BLACK), (10,10))
-    screen.blit(pygame.font.Font(None, 30).render("Level: " + str(board.level), True, block.RED), (10, 30))
-    screen.blit(pygame.font.Font(None, 30).render("Score: " + str(board.score), True, block.BLUE), (10, 50))
-    screen.blit(pygame.font.Font(None, 30).render("Speed: " + str(board.speed), True, (0, 102, 0)), (10, 70))
+    screen.blit(pygame.font.SysFont(myfont, 30).render("Time: " + str(elapsed_time), True, block.BLACK), (10,10))
+    screen.blit(pygame.font.SysFont(myfont, 30).render("Level: " + str(board.level), True, block.RED), (10, 30))
+    screen.blit(pygame.font.SysFont(myfont, 30).render("Score: " + str(board.score), True, block.BLUE), (10, 50))
+    screen.blit(pygame.font.SysFont(myfont, 30).render("Speed: " + str(board.speed), True, (0, 102, 0)), (10, 70))
     
-    screen.blit(pygame.font.Font(None, 30).render("volume  +      -", True, block.BLUE), (420, screen.get_height()//2))
-    screen.blit(pygame.font.Font(None, 30).render("EXIT", True, block.BLUE), (500, screen.get_height()//2 + 50))
-    screen.blit(pygame.font.Font(None, 25).render("NEXTBLOCK", True, block.BLACK), (450, 25))
+    screen.blit(pygame.font.SysFont(myfont, 30).render("volume  +      -", True, block.BLUE), (420, screen.get_height()//2))
+    screen.blit(pygame.font.SysFont(myfont, 30).render("EXIT", True, block.BLUE), (500, screen.get_height()//2 + 50))
+    screen.blit(pygame.font.SysFont(myfont, 20).render("NEXTBLOCK", True, block.BLACK), (450, 25))
 
 def drawButton(rect, color):
     pygame.draw.rect(screen, color, rect)
@@ -79,7 +366,7 @@ def musicVolume(string):
     print(volume)
     pygame.mixer.music.set_volume(volume)
 
-def server(name, score):
+def server(name, score, scoreList):
     current_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
     datas = {
         'name': name,
@@ -87,13 +374,27 @@ def server(name, score):
         'time': current_time
     }
     response = requests.post('http://54.180.131.80:5000/post', data=datas)
-    print(response.status_code)
-    print(response.text)
-
-def drawScoreBoard():
-    #inputbox = pygame.Rect(screen.get_width()//2 - 150, screen.get_height()//2 - 200, 300, 400)
-    #pygame.draw.rect(screen, block.WHITE, inputbox)
-    pass
+    scoreList = response.text
+    return scoreList
+    
+def drawScoreBoard(text, board, scoreList):
+    inputbox = pygame.Rect(screen.get_width()//2 - 150, screen.get_height()//2 - 200, 300, 400)
+    pygame.draw.rect(screen, block.WHITE, inputbox)
+    scoreList = list(eval(scoreList)) # string to list
+    pos = [150, 100]
+    Xgap = 200
+    Ygap = 40
+    for i, [name, score, time] in enumerate(scoreList[:10]):
+        if name==text and score==str(board.score):
+            color = block.RED
+        else:
+            color = block.BLACK
+        screen.blit(pygame.font.SysFont(myfont, 40).render(str(i+1) + "> " + name, True, color), 
+                    (pos[0], pos[1] + i*Ygap))
+        screen.blit(pygame.font.SysFont(myfont, 40).render(score, True, color), 
+                    (pos[0] + Xgap, pos[1] + i*Ygap))
+    #screen.blit(pygame.font.SysFont('malgungothic', 30).render(f"너 존나못해", True, block.RED), 
+    #            (pos[0], pos[1] + 10*Ygap))
     
 def main():
     global screen
@@ -114,11 +415,11 @@ def main():
     send_server = False
     input_active = False
     text = ""
-    
+    scoreList = []
     # button list
-    vol_rect_1 = pygame.Rect(500, screen.get_height()//2, 20, 20)
-    vol_rect_2 = pygame.Rect(540, screen.get_height()//2, 20, 20)
-    quit_rect = pygame.Rect(500, screen.get_height()//2 + 40, 50, 40)
+    vol_rect_1 = pygame.Rect(510, screen.get_height()//2 + 10, 20, 20)
+    vol_rect_2 = pygame.Rect(560, screen.get_height()//2 + 10, 20, 20)
+    quit_rect = pygame.Rect(500, screen.get_height()//2 + 50, 50, 40)
     
     while not done:
         mouse = pygame.mouse.get_pos()
@@ -127,7 +428,7 @@ def main():
         drawBackground(board)
         drawBoard(board)
         drawBlock(curBlock, nextBlock, board_x, board_y)
-        
+        #print(pygame.time.get_ticks())
         # draw button
         pygame.draw.rect(screen, block.WHITE, vol_rect_1)
         pygame.draw.rect(screen, block.WHITE, vol_rect_2)
@@ -136,8 +437,11 @@ def main():
         drawText(board)
         
         if finish:
-            screen.blit(pygame.font.Font(None, 50).render(">Name : " + text + "_", True, block.WHITE, 1), (150,100))
-            screen.blit(pygame.font.Font(None, 50).render("Score : " + str(board.score), True, block.WHITE, 1), (150,150))
+            screen.blit(pygame.font.SysFont(myfont, 40).render("Name :", True, block.WHITE, 1), (150,100))
+            if 0 <= pygame.time.get_ticks()%1000 <= 500: # blink
+                screen.blit(pygame.font.SysFont(myfont, 40).render(text + "_", True, block.WHITE, 1), (275,100))
+            
+            screen.blit(pygame.font.SysFont(myfont, 40).render("Score : " + str(board.score), True, block.WHITE, 1), (150,140))
             #text_surf = pygame.font.SysFont('malgungothic', 50).render(text, True, block.WHITE, 0)
             #text_surf.get_rect().center = (150, 150)
             #screen.blit(text_surf, text_surf.get_rect())
@@ -146,15 +450,16 @@ def main():
             # 엔터 -> input_active = False
             if not input_active:
                 if send_server: #  3333333333
-                    server(text, board.score)
+                    scoreList = server(text, board.score, scoreList)
                     send_server = False
                     
-                drawScoreBoard()
+                drawScoreBoard(text, board, scoreList)
                 
-                gameover = pygame.font.Font(None, 70).render("Press R to Respawn", True, (255, 255, 255), 1)
-                rect = gameover.get_rect()
-                rect.center = screen.get_rect().center
-                screen.blit(gameover, rect)
+                if 0 <= pygame.time.get_ticks()%2000 <= 1000: # blink
+                    gameover = pygame.font.SysFont(myfont, 70).render("Press R to Respawn", True, (255, 255, 255), 1)
+                    rect = gameover.get_rect()
+                    rect.center = (screen.get_width()//2, screen.get_height()//2)
+                    screen.blit(gameover, rect)
             
         
         for event in pygame.event.get():
@@ -206,7 +511,8 @@ def main():
             if keys[pygame.K_LEFT]:
                 if curBlock.checkLeft(board):
                     curBlock.x -= 1
-            #test용
+            #test용-----------------지우기.
+            
             elif keys[pygame.K_ESCAPE]:
                 finish = True
                 input_active = True
