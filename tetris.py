@@ -79,14 +79,16 @@ def musicVolume(string):
     print(volume)
     pygame.mixer.music.set_volume(volume)
 
-def server(id, score):
+def server(name, score):
     current_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
     datas = {
-        'id': id,
+        'name': name,
         'score': score,
         'time': current_time
     }
     response = requests.post('http://54.180.131.80:5000/post', data=datas)
+    print(response.status_code)
+    print(response.text)
 
 def drawScoreBoard():
     #inputbox = pygame.Rect(screen.get_width()//2 - 150, screen.get_height()//2 - 200, 300, 400)
@@ -134,9 +136,8 @@ def main():
         drawText(board)
         
         if finish:
-            screen.blit(pygame.font.Font(None, 50).render("Name : " + text + " < type", True, block.WHITE, 1), (150,100))
-            screen.blit(pygame.font.Font(None, 50).render("Level : " + str(board.level), True, block.WHITE, 1), (150,150))
-            screen.blit(pygame.font.Font(None, 50).render("Score : " + str(board.score), True, block.WHITE, 1), (150,200))
+            screen.blit(pygame.font.Font(None, 50).render(">Name : " + text + "_", True, block.WHITE, 1), (150,100))
+            screen.blit(pygame.font.Font(None, 50).render("Score : " + str(board.score), True, block.WHITE, 1), (150,150))
             #text_surf = pygame.font.SysFont('malgungothic', 50).render(text, True, block.WHITE, 0)
             #text_surf.get_rect().center = (150, 150)
             #screen.blit(text_surf, text_surf.get_rect())
@@ -144,8 +145,8 @@ def main():
             
             # 엔터 -> input_active = False
             if not input_active:
-                if send_server:
-                    server("temp", 100)
+                if send_server: #  3333333333
+                    server(text, board.score)
                     send_server = False
                     
                 drawScoreBoard()
@@ -175,16 +176,17 @@ def main():
                     curBlock.blockToBoard(board) # 보드에 그리고, 선 넘는지 검사
                     if any([pixel.val==1 for pixel in board.board[3]]): 
                         finish = True
-                        input_active = True
+                        input_active = True # 죽으면 11111111111111111
                         board.finish_time = pygame.time.get_ticks()
                         break
                     board.updateBoard()
                     curBlock = nextBlock
                     nextBlock = createBlock(board)
                     
-            elif event.type == pygame.KEYDOWN and input_active:
+            elif event.type == pygame.KEYDOWN and input_active: # 222222222222
                 if event.key == pygame.K_RETURN: # 엔터
                     input_active = False
+                    send_server = True
                 elif event.key == pygame.K_BACKSPACE: # 뒤로가기
                     text = text[:-1]
                 else: 
@@ -197,6 +199,8 @@ def main():
             if not input_active and keys[pygame.K_r]: # respawn
                 done = True
                 main()
+            if not input_active and keys[pygame.K_ESCAPE]: # respawn
+                done = True
         
         else:
             if keys[pygame.K_LEFT]:
